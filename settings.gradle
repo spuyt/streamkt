@@ -1,4 +1,0 @@
-rootProject.name = 'streamkt'
-
-
-enableFeaturePreview('GRADLE_METADATA')
