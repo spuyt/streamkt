@@ -19,7 +19,7 @@ class StreamKt {
                 val stream = EventStream()
 
                 // init mqtt
-                val mqtt = MqttProvider("tcp://spuyt.io:1883")
+                MqttProvider("tcp://spuyt.io:1883")
 
                 // send first event
                 val event = EventMessage("SERVER_STATUS", "1", "{\"status\": \"launched\"}")

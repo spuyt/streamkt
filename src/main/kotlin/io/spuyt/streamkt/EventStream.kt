@@ -2,6 +2,7 @@ package io.spuyt.streamkt
 
 import io.spuyt.streamkt.event.EventMessage
 import io.spuyt.streamkt.consumer.Consumer
+import io.spuyt.streamkt.db.StreamDatabase
 import java.lang.NullPointerException
 
 class EventStream() {
@@ -30,7 +31,7 @@ class EventStream() {
         }
 
         // add in (remote) database
-        streamDatabase!!.insert(event)
+        streamDatabase.insert(event)
 
         // add to local history
         addEventHistory(event)

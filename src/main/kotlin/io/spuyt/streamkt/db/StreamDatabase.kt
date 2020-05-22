@@ -1,7 +1,8 @@
-package io.spuyt.streamkt
+package io.spuyt.streamkt.db
 
 import io.spuyt.streamkt.consumer.ConsumerState
 import io.spuyt.streamkt.event.EventMessage
+
 
 interface StreamDatabase {
 

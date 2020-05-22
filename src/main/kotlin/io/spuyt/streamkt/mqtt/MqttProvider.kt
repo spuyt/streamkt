@@ -21,7 +21,7 @@ class MqttProvider(uri: String, statusIntervalSec: Long = 2) {
     private val devicePath = "eventstream/global/server"
     private val statusPath = "eventstream/global/status"
 
-    private val QOS_EXACTLY_ONCE: Int = 4 // There are 3 QoS levels in MQTT: At most once (0) At least once (1) Exactly once (2).
+    private val QOS_EXACTLY_ONCE: Int = 2 // There are 3 QoS levels in MQTT: At most once (0) At least once (1) Exactly once (2).
 
     private val gson = Gson()
 
@@ -187,7 +187,7 @@ class MqttProvider(uri: String, statusIntervalSec: Long = 2) {
     }
 
     fun publish(topic: String, data: String, retain: Boolean = false) {
-        val encodedPayload : ByteArray
+        var encodedPayload : ByteArray
         try {
             encodedPayload = data.toByteArray(charset("UTF-8"))
             val message = MqttMessage(encodedPayload)
@@ -197,7 +197,7 @@ class MqttProvider(uri: String, statusIntervalSec: Long = 2) {
             println("mqtt: message sent")
         } catch (e: Exception) {
             // Give Callback on error here
-            println("mqtt: exception publising message")
+            println("mqtt: exception publishing message on topic: ${topic}")
             println(e)
         } catch (e: MqttException) {
             // Give Callback on error here
