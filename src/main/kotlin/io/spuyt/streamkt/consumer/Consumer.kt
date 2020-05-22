@@ -1,6 +1,6 @@
 package io.spuyt.streamkt.consumer
 
-import io.spuyt.streamkt.StreamDatabase
+import io.spuyt.streamkt.db.StreamDatabase
 import io.spuyt.streamkt.event.EventMessage
 
 

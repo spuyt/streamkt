@@ -43,6 +43,9 @@ tags
 # gradle
 .gradle/
 
+# mqtt
+.lck
+
 # build folder
 build/
 
