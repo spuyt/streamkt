@@ -3,6 +3,8 @@ import kotlinx.coroutines.launch
 
 import io.spuyt.streamkt.EventStream
 import io.spuyt.streamkt.event.EventMessage
+import io.spuyt.streamkt.mqtt.MqttProvider
+import kotlinx.coroutines.delay
 
 class StreamKt {
 
@@ -11,19 +13,46 @@ class StreamKt {
         fun main(args: Array<String>) {
             println("Welcome to StreamKt")
 
-            val stream = EventStream()
-
-            val event = EventMessage("BOOKMARK", "1", "{\"tags\": [\"test\"], \"url\": \"https://spuyt.io\"}")
-
+            // coroutine for the event stream
             GlobalScope.launch {
-                stream.postEvent(event)
+                // init event stream
+                val stream = EventStream()
+
+                // init mqtt
+                val mqtt = MqttProvider("tcp://spuyt.io:1883")
+
+                // send first event
+                val event = EventMessage("SERVER_STATUS", "1", "{\"status\": \"launched\"}")
+                try {
+                    stream.postEvent(event)
+                }catch(e: java.lang.Exception) {
+                    println("could not post event into the stream: ${e}")
+                }
+
+                // log the status every couple op seconds
+                while(true) {
+                    try {
+                        println()
+                        println("event history:")
+                        println(stream.eventHistory)
+                        Thread.sleep(10 * 1000)
+                    } catch (e: Exception) {
+                        println("EXCEPTION IN MAIN EVENT STREAM COROUTINE")
+                        println(e)
+                    }
+                }
             }
 
-            println()
-            println("event history:")
-            println(stream.eventHistory)
+            // keep running
+            while (true) {
+                try {
+                    Thread.sleep(10 * 1000)
+                } catch (e: Exception) {
+                    println("EXCEPTION IN MAIN THREAD")
+                    println(e)
+                }
+            }
 
-	
         }
     }
 }

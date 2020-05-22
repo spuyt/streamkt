@@ -30,6 +30,9 @@ dependencies {
 
     // Gson
     implementation "com.google.code.gson:gson:2.8.6"
+
+    // MQTT
+    implementation "org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.1.0"
 }
 
 jar {
@@ -40,5 +43,6 @@ jar {
     from {
         configurations.compileClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
+    exclude 'META-INF/*.RSA', 'META-INF/*.SF','META-INF/*.DSA'
 
 }
