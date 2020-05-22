@@ -8,8 +8,8 @@ import kotlinx.coroutines.launch
 import org.eclipse.paho.client.mqttv3.*
 
 class MqttProvider(uri: String, statusIntervalSec: Long = 2) {
-    private var mqttClient: MqttClient
-    private lateinit var connectCallbackToken: IMqttToken
+    private var mqttClient: IMqttAsyncClient
+    private lateinit var connectCallback: IMqttActionListener
 
     private var devices: MutableMap<String, Device> = mutableMapOf<String, Device>()
 
@@ -21,14 +21,19 @@ class MqttProvider(uri: String, statusIntervalSec: Long = 2) {
     private val devicePath = "eventstream/global/server"
     private val statusPath = "eventstream/global/status"
 
-    private val QOS_EXACTLY_ONCE: Int = 2 // There are 3 QoS levels in MQTT: At most once (0) At least once (1) Exactly once (2).
+    private val QOS_EXACTLY_ONCE: Int = 4 // There are 3 QoS levels in MQTT: At most once (0) At least once (1) Exactly once (2).
 
     private val gson = Gson()
 
     init {
         println("mqtt: creating MqttClientProvider")
 
-        mqttClient = MqttClient(uri, "server")
+        mqttClient = MqttAsyncClient(uri, "server", null)
+
+        //val options = MqttConnectOptions()
+        //mqttClient.connect(options)
+        connect()
+
         receiveMessages()
 
         // put in my own status without going through mqtt
@@ -43,6 +48,7 @@ class MqttProvider(uri: String, statusIntervalSec: Long = 2) {
             device.addPingEvent(ping)
             devices.put(deviceId, device)
         }()
+        publish(statusPath, pingStr)
 
         // start loop to send status updates
         this.statusIntervalSec = statusIntervalSec
@@ -52,10 +58,8 @@ class MqttProvider(uri: String, statusIntervalSec: Long = 2) {
     fun connect(){
         isConnecting = true
         try {
-            println("mqtt: trying to connect...")
-            val options = MqttConnectOptions()
-            connectCallbackToken = mqttClient.connectWithResult(options)
-            connectCallbackToken.actionCallback = object : IMqttActionListener {
+            // set the callback methods
+            connectCallback = object : IMqttActionListener {
                 override fun onSuccess(asyncActionToken: IMqttToken)                        {
                     println("mqtt: connected")
                     // start receiving messages
@@ -72,6 +76,10 @@ class MqttProvider(uri: String, statusIntervalSec: Long = 2) {
                     isConnecting = false
                 }
             }
+            // connect to the mqtt broker
+            println("mqtt: trying to connect...")
+            val options = MqttConnectOptions()
+            mqttClient.connect(options, connectCallback)
         } catch (e: MqttException) {
             // Give your callback on connection failure here
             println("mqtt: exception")
@@ -84,7 +92,9 @@ class MqttProvider(uri: String, statusIntervalSec: Long = 2) {
         GlobalScope.launch {
             while (true) {
                 try { // catch any error ever because we dont want this coroutine to die for whatever reason
-                    println("mqtt: sending status update")
+                    if(!isConnected) {
+                        println("mqtt: sending status update, currently connected: ${isConnected}, currently connecting: ${isConnecting}")
+                    }
                     if (isConnected) { // publish status if connected
                         publish(statusPath, PingEvent.myStatusJson("online"))
                     } else if(!isConnecting){ // try to reconnect if not already trying to connect
@@ -133,7 +143,7 @@ class MqttProvider(uri: String, statusIntervalSec: Long = 2) {
                     val data = String(message.payload, charset("UTF-8"))
                     // data is the desired received message
                     // Give your callback on message received here
-                    println("mqtt: received message on topic: ${topic}\nmessae : ${data}")
+                    println("mqtt: received message on topic: ${topic}\nmessage : ${data}")
 
                     // decide what to do with the message
                     if(topic == statusPath){
