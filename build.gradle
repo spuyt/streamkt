@@ -30,6 +30,9 @@ dependencies {
 
     // Gson
     implementation "com.google.code.gson:gson:2.8.6"
+
+    // MQTT
+    implementation "org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.1.0"
 }
 
 jar {
