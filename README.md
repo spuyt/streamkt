@@ -44,18 +44,19 @@ You can use the project specific gradle binary `gradlew` to build the project wi
 java -jar build/libs/streamkt.jar
 ```
 
-## develop locally using docker
 
-#### create the default MySQL database
+## create the default MySQL database using Docker
 
-When no specific settings are provided, streamkt will try to connect to this local MySQL server.
+When no specific settings are provided, streamkt will try to connect to this local MySQL server:
 
  - docker image name: **streamkt-mysql-dev**
 
- - username: **streamkt-dev**
+ - username: **root**
  - password: **streamkt-dev-pw**
  - database: **streamkt**
  - port: **33060**
+
+#### To create this database using Docker use the following command:
 
 ```
 docker run --name streamkt-mysql-dev \
@@ -65,7 +66,7 @@ docker run --name streamkt-mysql-dev \
 -d mysql:8.0.20
 ```
 
-#### connect to the dev database
+### connect to the dev database
 
 In case you want to connect to the local temporary mysql database to inspect it, run these commands:
 
