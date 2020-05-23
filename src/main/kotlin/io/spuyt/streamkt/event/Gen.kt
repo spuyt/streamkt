@@ -16,7 +16,7 @@ import java.util.*
 //
 // human readable size:
 // 1589187064.737-ffff-VGhlIHF1aWNrIGJyb3duIGZveCA=
-//                  48 characters (all 8 bit in utf-8) so 48 bytes or 384 bytes
+//                  48 characters (all 8 bit in utf-8) so 48 bytes or 384 bits
 //
 // the last 28 characters are the device id, you save this on the device
 // this way you can have fewer chances of collision
@@ -33,7 +33,7 @@ object Gen {
     // (as opposed to creating random with a seed of the current unix time, because then you might
     // as well just use the current unix time as the random 160 bit id, because it will always
     // generate the same initial values)
-    private var ran: SecureRandom = SecureRandom()
+    private var rand: SecureRandom = SecureRandom()
 
     // generate a random device id
     var deviceIdBytes: ByteArray = randBytes() // init to random value
@@ -43,7 +43,7 @@ object Gen {
     private var unixMs: Long = System.currentTimeMillis()
     private var iter: UShort = 0U // increases with every event that happens at the same millisecond, to prevent duplicate ids
 
-    fun NextGUID(): String {
+    fun nextGUID(): String {
         var id = ""
         synchronized(this) {
             // see if we need to update the iterator for sub-millisecond precision
@@ -69,7 +69,7 @@ object Gen {
 
     private fun randBytes(n: Int = 160/8): ByteArray {
         val bs = ByteArray(n)
-        ran.nextBytes(bs)
+        rand.nextBytes(bs)
         return bs
     }
 }
