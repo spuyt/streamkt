@@ -33,6 +33,12 @@ dependencies {
 
     // MQTT
     implementation "org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.1.0"
+
+    // MySQL
+    implementation "org.jetbrains.exposed:exposed-core:0.24.1"
+    implementation "org.jetbrains.exposed:exposed-jdbc:0.24.1"
+    //implementation "org.jetbrains.exposed:exposed-dao:0.24.1"
+    implementation "mysql:mysql-connector-java:8.0.20"
 }
 
 jar {

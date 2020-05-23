@@ -3,11 +3,10 @@ package io.spuyt.streamkt
 import io.spuyt.streamkt.event.EventMessage
 import io.spuyt.streamkt.consumer.Consumer
 import io.spuyt.streamkt.db.StreamDatabase
-import java.lang.NullPointerException
 
-class EventStream() {
-
-    private val streamDatabase: StreamDatabase? = null
+class EventStream(
+        val streamDatabase: StreamDatabase
+) {
 
     var consumers = mutableListOf<Consumer>()
 
@@ -26,9 +25,6 @@ class EventStream() {
     }
 
     suspend fun postEvent(event: EventMessage) {
-        if(streamDatabase == null) {
-            throw NullPointerException("streamDatabase is null")
-        }
 
         // add in (remote) database
         streamDatabase.insert(event)

@@ -2,9 +2,10 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
 import io.spuyt.streamkt.EventStream
+import io.spuyt.streamkt.db.mysql.MySql
 import io.spuyt.streamkt.event.EventMessage
 import io.spuyt.streamkt.mqtt.MqttProvider
-import kotlinx.coroutines.delay
+import kotlin.system.exitProcess
 
 class StreamKt {
 
@@ -15,11 +16,20 @@ class StreamKt {
 
             // coroutine for the event stream
             GlobalScope.launch {
-                // init event stream
-                val stream = EventStream()
 
                 // init mqtt
                 MqttProvider("tcp://spuyt.io:1883")
+
+                // init the database connection
+                try {
+                    MySql.connectDebug()
+                }catch(e: Exception) {
+                    println(e)
+                    exitProcess(1) // terminate if we cannot connect to the database
+                }
+
+                // init event stream
+                val stream = EventStream(MySql)
 
                 // send first event
                 val event = EventMessage("SERVER_STATUS", "1", "{\"status\": \"launched\"}")

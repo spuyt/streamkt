@@ -3,6 +3,9 @@ package io.spuyt.streamkt.db.mysql
 import io.spuyt.streamkt.consumer.ConsumerState
 import io.spuyt.streamkt.db.StreamDatabase
 import io.spuyt.streamkt.event.EventMessage
+import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.transactions.transaction
+
 
 /*
 
@@ -31,23 +34,91 @@ Table: consumerStates
 */
 
 
+
 object MySql : StreamDatabase {
 
+    var createEventsTableQuery: String =
+            """
+                CREATE TABLE IF NOT EXISTS events (
+                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                    eventId VARCHAR(255) NOT NULL,
+                    creationTimeUnixSec BIGINT,
+                    deviceId VARCHAR(255) NOT NULL,
+                    locationId VARCHAR(255) NOT NULL,
+                    appVersion VARCHAR(255) NOT NULL,
+                    eventType VARCHAR(255) NOT NULL,
+                    eventVersion VARCHAR(255) NOT NULL,
+                    eventTimeUnixSec BIGINT,
+                    payloadJson TEXT
+                );
+            """.trimIndent()
 
-    fun connect() {
+    var createConsumerStatesTableQuery: String =
+            """
+                CREATE TABLE IF NOT EXISTS consumer_states (
+                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                    consumerId VARCHAR(255) NOT NULL,
+                    cursor BIGINT
+                );
+            """.trimIndent()
+
+    object Events : Table() {
+        val id = long("id").autoIncrement() // Column<Long>
+        override val primaryKey = PrimaryKey(id) // name is optional here
+        val eventId = varchar("event_id", length = 255) // Column<String>
+        val creationTimeUnixSec = long("creation_time_unix_sec") // Column<Long>
+        val deviceId = varchar("device_id", length = 255) // Column<String>
+        val locationId = varchar("location_id", length = 255) // Column<String>
+        val appVersion = varchar("app_version", length = 255) // Column<String>
+        val eventType = varchar("event_type", length = 255) // Column<String>
+        val eventVersion = varchar("event_version", length = 255) // Column<String>
+        val eventTimeUnixSec = long("event_time_unix_sec") // Column<Long>
+        val payloadJson = text("payload_json") // Column<String>
+    }
+
+    object ConsumerStates : Table() {
+        val id = long("id").autoIncrement() // Column<Long>
+        override val primaryKey = PrimaryKey(id) // name is optional here
+        val consumerId = varchar("consumer_id", length = 255) // Column<String>
+        val cursor = long("cursor") // Column<Long>
+    }
+
+    fun connectDebug() {
+        Database.connect("jdbc:mysql://127.0.0.1:33060/streamkt", "com.mysql.jdbc.Driver", "root", "streamkt-dev-pw")
+        transaction {
+            addLogger(StdOutSqlLogger)
+            createTables()
+        }
+    }
+
+    fun connect(url: String, port: String, username: String, password: String) {
 
     }
 
-    fun createDatabases() {
-
+    fun createTables() {
+        SchemaUtils.create(Events)
+        SchemaUtils.create(ConsumerStates)
     }
-
-
 
 
 
     override suspend fun insert(event: EventMessage): Long {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        var id: Long = 0L
+        transaction {
+            addLogger(StdOutSqlLogger)
+            id = Events.insert {
+                it[eventId] = event.eventId
+                it[creationTimeUnixSec] = event.creationTimeUnixSec
+                it[deviceId] = event.deviceId
+                it[locationId] = event.locationId
+                it[appVersion] = event.appVersion
+                it[eventType] = event.eventType
+                it[eventVersion] = event.eventVersion
+                it[eventTimeUnixSec] = event.eventTimeUnixSec
+                it[payloadJson] = event.payloadJson
+            } get Events.id
+        }
+        return id
     }
 
     override suspend fun getAfter(cursor: Long, batchSize: Int): List<EventMessage> {
@@ -65,4 +136,6 @@ object MySql : StreamDatabase {
     override suspend fun saveConsumerState(consumerState: ConsumerState) {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
+
+
 }
