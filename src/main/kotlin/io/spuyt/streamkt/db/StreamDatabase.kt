@@ -19,5 +19,5 @@ interface StreamDatabase {
     suspend fun getConsumerState(consumerId: String): ConsumerState
 
     @Throws(Exception::class)
-    suspend fun saveConsumerState(consumerState: ConsumerState)
+    suspend fun saveConsumerState(consumerState: ConsumerState): Long
 }

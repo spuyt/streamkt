@@ -32,12 +32,13 @@ class StreamKt {
                 val stream = EventStream(MySql)
 
                 // send first event
-                val event = EventMessage("SERVER_STATUS", "1", "{\"status\": \"launched\"}")
-                try {
-                    stream.postEvent(event)
-                }catch(e: java.lang.Exception) {
-                    println("could not post event into the stream: ${e}")
-                }
+                // TODO make MessageGenerator
+//                val event = EventMessage("SERVER_STATUS", "1", "{\"status\": \"launched\"}")
+//                try {
+//                    stream.postEvent(event)
+//                }catch(e: java.lang.Exception) {
+//                    println("could not post event into the stream: ${e}")
+//                }
 
                 // log the status every couple op seconds
                 while(true) {
