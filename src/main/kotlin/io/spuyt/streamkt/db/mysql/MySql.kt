@@ -66,7 +66,7 @@ object MySql : StreamDatabase {
     object Events : Table() {
         val id = long("id").autoIncrement() // Column<Long>
         override val primaryKey = PrimaryKey(id) // name is optional here
-        val eventId = varchar("event_id", length = 255) // Column<String>
+        val eventId = varchar("event_id", length = 255).uniqueIndex("event_id") // Column<String>, needs to be unique
         val creationTimeUnixSec = long("creation_time_unix_sec") // Column<Long>
         val eventTimeUnixSec = long("event_time_unix_sec") // Column<Long>
         val deviceId = varchar("device_id", length = 255) // Column<String>

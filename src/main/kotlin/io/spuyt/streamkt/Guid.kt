@@ -1,6 +1,7 @@
-package io.spuyt.streamkt.event
+package io.spuyt.streamkt
 
 import java.security.SecureRandom
+import java.text.DecimalFormat
 import java.util.*
 
 // id format:
@@ -18,17 +19,15 @@ import java.util.*
 // 1589187064.737-ffff-VGhlIHF1aWNrIGJyb3duIGZveCA=
 //                  48 characters (all 8 bit in utf-8) so 48 bytes or 384 bits
 //
-// the last 28 characters are the device id, you save this on the device
-// this way you can have fewer chances of collision
-//
-// With a 64bit device-id there would be a 1 in a million chance of collision of ids (not good)
+// With a 64bit random part there would be a 1 in a million chance of collision of ids (not good)
 // with 6.07 app installs, even when the id is only generated once and then saved
 // so this would give a real realistic chance of collision.
-// With a 160bit device-id this one in a million chance would be after 1.71*10^21 installs,
+// With a 160bit random part this one in a million chance would be after 1.71*10^21 installs,
 // or 1.71*10^9 trillion device installs. So this is a safer option.
+//
 
 
-object Gen {
+object Guid {
     // init secure random
     // (as opposed to creating random with a seed of the current unix time, because then you might
     // as well just use the current unix time as the random 160 bit id, because it will always
@@ -41,30 +40,28 @@ object Gen {
         get() = Base64.getEncoder().encodeToString(deviceIdBytes)
 
     private var unixMs: Long = System.currentTimeMillis()
-    private var iter: UShort = 0U // increases with every event that happens at the same millisecond, to prevent duplicate ids
+    private var iter: Int = 0 // increases with every event that happens at the same millisecond, to prevent duplicate ids
 
     fun nextGUID(): String {
-        var id = ""
         synchronized(this) {
             // see if we need to update the iterator for sub-millisecond precision
             val ms = System.currentTimeMillis()
             if(ms != unixMs) {
                 unixMs = ms
-                iter = 0U
+                iter = 0
             } else {
                 iter++
             }
             // display time formatted as seconds for readability: 1589187064.737
             val unixSec: Double = unixMs.toDouble() / 1000
-            val unixSecStr: String = "%.3f".format(unixSec)
+            val unixSecStr: String = DecimalFormat("#.###").format(unixSec)
             // encode the iterator as a hex value to make it more compact and fix the size
-            val iterStr: String = "%.4x".format(iter)
+            val iterStr: String = Integer.toHexString(iter)
 
             // generate the id, should come out as:
             // 1589187064.737-ffff-VGhlIHF1aWNrIGJyb3duIGZveCA=
-            id = unixSecStr + "-" + iterStr + "-" + deviceId
+            return unixSecStr + "-" + iterStr + "-" + deviceId
         }
-        return id
     }
 
     private fun randBytes(n: Int = 160/8): ByteArray {

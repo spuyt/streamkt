@@ -7,15 +7,17 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.eclipse.paho.client.mqttv3.*
 
-class MqttProvider(uri: String, statusIntervalSec: Long = 2) {
-    private var mqttClient: IMqttAsyncClient
+object MqttProvider {
+    private lateinit var mqttClient: IMqttAsyncClient
     private lateinit var connectCallback: IMqttActionListener
 
     private var devices: MutableMap<String, Device> = mutableMapOf<String, Device>()
 
+    lateinit var uri: String
+    var statusIntervalSec: Long = 10L
     var isConnected: Boolean = false
     var isConnecting: Boolean = false
-    var statusIntervalSec: Long = 10L
+
 
     private val locationPath = "eventstream/#"
     private val devicePath = "eventstream/global/server"
@@ -25,9 +27,11 @@ class MqttProvider(uri: String, statusIntervalSec: Long = 2) {
 
     private val gson = Gson()
 
-    init {
+    fun init(uri: String, statusIntervalSec: Long = 10L) {
         println("mqtt: creating MqttClientProvider")
 
+        this.uri = uri
+        this.statusIntervalSec = statusIntervalSec
         mqttClient = MqttAsyncClient(uri, "server", null)
 
         //val options = MqttConnectOptions()

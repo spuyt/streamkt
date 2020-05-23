@@ -3,6 +3,7 @@ import kotlinx.coroutines.launch
 
 import io.spuyt.streamkt.EventStream
 import io.spuyt.streamkt.db.mysql.MySql
+import io.spuyt.streamkt.event.EventGen
 import io.spuyt.streamkt.event.EventMessage
 import io.spuyt.streamkt.mqtt.MqttProvider
 import kotlin.system.exitProcess
@@ -18,7 +19,7 @@ class StreamKt {
             GlobalScope.launch {
 
                 // init mqtt
-                MqttProvider("tcp://spuyt.io:1883")
+                MqttProvider.init("tcp://spuyt.io:1883")
 
                 // init the database connection
                 try {
@@ -32,13 +33,15 @@ class StreamKt {
                 val stream = EventStream(MySql)
 
                 // send first event
-                // TODO make MessageGenerator
-//                val event = EventMessage("SERVER_STATUS", "1", "{\"status\": \"launched\"}")
-//                try {
-//                    stream.postEvent(event)
-//                }catch(e: java.lang.Exception) {
-//                    println("could not post event into the stream: ${e}")
-//                }
+                EventGen.init("server-1", "spuyt")
+                EventGen.appVersion = "server-alpha-1" // TODO use Gradle to generate
+                val event: EventMessage = EventGen.createEvent("SERVER_STATUS", "1", "{\"status\": \"launched\"}")
+                println(event.toJson(true))
+                try {
+                    stream.postEvent(event)
+                }catch(e: java.lang.Exception) {
+                    println("could not post event into the stream: ${e}")
+                }
 
                 // log the status every couple op seconds
                 while(true) {

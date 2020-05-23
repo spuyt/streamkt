@@ -6,14 +6,14 @@ import com.google.gson.GsonBuilder
 data class EventMessage(
         // message id
         var id: Long = 0L, // use this to get the events in the order they were added to the database
-        var eventId: String = "",
-        var creationTimeUnixSec: Long = 0L,
+        var eventId: String,
+        var creationTimeUnixSec: Long,
         // the time this event happened
-        var eventTimeUnixSec: Long = 0L,
+        var eventTimeUnixSec: Long,
         // creator information
-        var deviceId: String = "",
-        var locationId: String = "",
-        var appVersion: String = "",
+        var deviceId: String,
+        var locationId: String,
+        var appVersion: String,
         // to identify compatible consumers
         val eventType: String,
         val eventVersion: String,
