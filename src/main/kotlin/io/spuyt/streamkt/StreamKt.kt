@@ -32,23 +32,43 @@ class StreamKt {
                 // init event stream
                 val stream = EventStream(MySql)
 
-                // send first event
+                // initialize the Event Generator
                 EventGen.init("server-1", "spuyt")
                 EventGen.appVersion = "server-alpha-1" // TODO use Gradle to generate
-                val event: EventMessage = EventGen.createEvent("SERVER_STATUS", "1", "{\"status\": \"launched\"}")
-                println(event.toJson(true))
-                try {
-                    stream.postEvent(event)
-                }catch(e: java.lang.Exception) {
-                    println("could not post event into the stream: ${e}")
+
+                println("starting benchmarks")
+                // create some events for as a benchmark
+                var start = System.currentTimeMillis()
+                for(i in 0..9) {
+                    try {
+                        val event: EventMessage = EventGen.createEvent("SERVER_BENCHMARK", "1", "{\"status\": \"benchmark create ${i}\"}")
+                        //println(event.toJson(true))
+                    } catch (e: java.lang.Exception) {
+                        println("could not post event into the stream: ${e}")
+                    }
                 }
+                var end = System.currentTimeMillis()
+                println("time per created event in ms: ${(end-start)/10}")
+
+                // send some test events
+                start = System.currentTimeMillis()
+                for(i in 0..9) {
+                    try {
+                        val event: EventMessage = EventGen.createEvent("SERVER_BENCHMARK", "1", "{\"status\": \"benchmark post event ${i}\"}")
+                        //println(event.toJson(true))
+                        stream.postEvent(event)
+                    } catch (e: java.lang.Exception) {
+                        println("could not post event into the stream: ${e}")
+                    }
+                }
+                end = System.currentTimeMillis()
+                println("time per added event in ms: ${(end-start)/10}")
 
                 // log the status every couple op seconds
                 while(true) {
                     try {
                         println()
-                        println("event history:")
-                        println(stream.eventHistory)
+                        println("in memory local event history length: ${stream.eventHistory.size}")
                         Thread.sleep(10 * 1000)
                     } catch (e: Exception) {
                         println("EXCEPTION IN MAIN EVENT STREAM COROUTINE")
