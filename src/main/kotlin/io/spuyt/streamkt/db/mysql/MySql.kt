@@ -85,9 +85,9 @@ object MySql : StreamDatabase {
     }
 
     fun connectDebug() {
-        Database.connect("jdbc:mysql://127.0.0.1:33060/streamkt", "com.mysql.jdbc.Driver", "root", "streamkt-dev-pw")
+        Database.connect("jdbc:mysql://127.0.0.1:33060/streamkt", "com.mysql.cj.jdbc.Driver", "root", "streamkt-dev-pw")
         transaction {
-            addLogger(StdOutSqlLogger)
+            //addLogger(StdOutSqlLogger)
             createTables()
         }
     }
@@ -104,82 +104,97 @@ object MySql : StreamDatabase {
 
 
     override suspend fun insert(event: EventMessage): Long {
-        val id = Events.insert {
-            it[eventId] = event.eventId
-            it[creationTimeUnixSec] = event.creationTimeUnixSec
-            it[eventTimeUnixSec] = event.eventTimeUnixSec
-            it[deviceId] = event.deviceId
-            it[locationId] = event.locationId
-            it[appVersion] = event.appVersion
-            it[eventType] = event.eventType
-            it[eventVersion] = event.eventVersion
-            it[payloadJson] = event.payloadJson
-        } get Events.id
+        var id = 0L
+        transaction {
+            //addLogger(StdOutSqlLogger)
+            id = Events.insert {
+                it[eventId] = event.eventId
+                it[creationTimeUnixSec] = event.creationTimeUnixSec
+                it[eventTimeUnixSec] = event.eventTimeUnixSec
+                it[deviceId] = event.deviceId
+                it[locationId] = event.locationId
+                it[appVersion] = event.appVersion
+                it[eventType] = event.eventType
+                it[eventVersion] = event.eventVersion
+                it[payloadJson] = event.payloadJson
+            } get Events.id
+        }
         return id
     }
 
     override suspend fun getAfter(cursor: Long, batchSize: Int): List<EventMessage> {
         val events = mutableListOf<EventMessage>()
-        Events.select { Events.id.greater(cursor) }.forEach {
-            val event = EventMessage(
-                it[Events.id],
-                it[Events.eventId],
-                it[Events.creationTimeUnixSec],
-                it[Events.eventTimeUnixSec],
-                it[Events.deviceId],
-                it[Events.locationId],
-                it[Events.appVersion],
-                it[Events.eventType],
-                it[Events.eventVersion],
-                it[Events.payloadJson]
-            )
-            events.add(event)
+        transaction {
+            //addLogger(StdOutSqlLogger)
+            Events.select { Events.id.greater(cursor) }.forEach {
+                val event = EventMessage(
+                        it[Events.id],
+                        it[Events.eventId],
+                        it[Events.creationTimeUnixSec],
+                        it[Events.eventTimeUnixSec],
+                        it[Events.deviceId],
+                        it[Events.locationId],
+                        it[Events.appVersion],
+                        it[Events.eventType],
+                        it[Events.eventVersion],
+                        it[Events.payloadJson]
+                )
+                events.add(event)
+            }
         }
         return events.toList()
     }
 
     override suspend fun getAfterSelection(cursor: Long, eventTypes: List<String>, eventVersions: List<String>, batchSize: Int): List<EventMessage> {
         val events = mutableListOf<EventMessage>()
-        Events.select {
-            Events.id.greater(cursor) and
-            Events.eventType.inList(eventTypes) and
-            Events.eventVersion.inList(eventVersions)
-        }.forEach {
-            val event = EventMessage(
-                    it[Events.id],
-                    it[Events.eventId],
-                    it[Events.creationTimeUnixSec],
-                    it[Events.eventTimeUnixSec],
-                    it[Events.deviceId],
-                    it[Events.locationId],
-                    it[Events.appVersion],
-                    it[Events.eventType],
-                    it[Events.eventVersion],
-                    it[Events.payloadJson]
-            )
-            events.add(event)
+        transaction {
+            //addLogger(StdOutSqlLogger)
+            Events.select {
+                Events.id.greater(cursor) and
+                        Events.eventType.inList(eventTypes) and
+                        Events.eventVersion.inList(eventVersions)
+            }.forEach {
+                val event = EventMessage(
+                        it[Events.id],
+                        it[Events.eventId],
+                        it[Events.creationTimeUnixSec],
+                        it[Events.eventTimeUnixSec],
+                        it[Events.deviceId],
+                        it[Events.locationId],
+                        it[Events.appVersion],
+                        it[Events.eventType],
+                        it[Events.eventVersion],
+                        it[Events.payloadJson]
+                )
+                events.add(event)
+            }
         }
         return events.toList()
     }
 
     override suspend fun getConsumerState(consumerId: String): ConsumerState {
-        ConsumerStates.select { ConsumerStates.consumerId.eq(consumerId) }.forEach { // TODO dont know how to get only one
-            val cs = ConsumerState(
-                    it[ConsumerStates.consumerId],
-                    it[ConsumerStates.cursor]
+        var cs: ConsumerState? = null
+        transaction {
+            //addLogger(StdOutSqlLogger)
+            val css = ConsumerStates.select { ConsumerStates.consumerId.eq(consumerId) }.singleOrNull()!!
+            cs = ConsumerState(
+                    css[ConsumerStates.consumerId],
+                    css[ConsumerStates.cursor]
             )
-            return cs
         }
-        throw Exception("consumer state not found in the database")
+        return cs!!
     }
 
     override suspend fun saveConsumerState(consumerState: ConsumerState): Long {
-        val id = ConsumerStates.insert {
-            it[consumerId] = consumerState.consumerId
-            it[cursor] = consumerState.cursor
-        } get ConsumerStates.id
+        var id = 0L
+        transaction {
+            //addLogger(StdOutSqlLogger)
+            id = ConsumerStates.insert {
+                it[consumerId] = consumerState.consumerId
+                it[cursor] = consumerState.cursor
+            } get ConsumerStates.id
+        }
         return id
     }
-
 
 }

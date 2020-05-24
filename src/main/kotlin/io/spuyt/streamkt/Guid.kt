@@ -7,17 +7,14 @@ import java.util.*
 // id format:
 //---------------------------
 // timestamp milliseconds: Long
-//      for readability the timestamp is displayed as seconds with the higher precision part being
-//      displayed after the dot
-// iterator: uint16 hex (for fixed length, makes it sortable)
+// iterator: uint16
 // random 160 bit (5 bytes) for global uniqueness without any priors encoded as base64 string
 //
 // size:
 // 64 - 16 - 160 = 240 bits in total, in non-human readable format
 //
 // human readable size:
-// 1589187064.737-ffff-VGhlIHF1aWNrIGJyb3duIGZveCA=
-//                  48 characters (all 8 bit in utf-8) so 48 bytes or 384 bits
+// 1589187064737-0-VGhlIHF1aWNrIGJyb3duIGZveCA=
 //
 // With a 64bit random part there would be a 1 in a million chance of collision of ids (not good)
 // with 6.07 app installs, even when the id is only generated once and then saved
@@ -46,25 +43,20 @@ object Guid {
         synchronized(this) {
             // see if we need to update the iterator for sub-millisecond precision
             val ms = System.currentTimeMillis()
-            if(ms != unixMs) {
+            if(ms == unixMs) {
+                iter++
+            } else {
                 unixMs = ms
                 iter = 0
-            } else {
-                iter++
             }
-            // display time formatted as seconds for readability: 1589187064.737
-            val unixSec: Double = unixMs.toDouble() / 1000
-            val unixSecStr: String = DecimalFormat("#.###").format(unixSec)
-            // encode the iterator as a hex value to make it more compact and fix the size
-            val iterStr: String = Integer.toHexString(iter)
 
             // generate the id, should come out as:
-            // 1589187064.737-ffff-VGhlIHF1aWNrIGJyb3duIGZveCA=
-            return unixSecStr + "-" + iterStr + "-" + deviceId
+            // 1590309008874-0-cYdPzsr3fVhd8ZSlZ4TkYFsN5vwB
+            return unixMs.toString() + "-" + iter.toString() + "-" + deviceId
         }
     }
 
-    private fun randBytes(n: Int = 160/8): ByteArray {
+    private fun randBytes(n: Int = 168/8): ByteArray {
         val bs = ByteArray(n)
         rand.nextBytes(bs)
         return bs
