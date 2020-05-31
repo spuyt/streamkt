@@ -2,6 +2,8 @@ package io.spuyt.streamkt.mqtt
 
 import com.google.gson.Gson
 import com.google.gson.JsonParseException
+import io.spuyt.streamkt.EventStream
+import io.spuyt.streamkt.event.EventMessage
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -10,6 +12,8 @@ import org.eclipse.paho.client.mqttv3.*
 object MqttProvider {
     private lateinit var mqttClient: IMqttAsyncClient
     private lateinit var connectCallback: IMqttActionListener
+
+    private lateinit var eventStream: EventStream
 
     private var devices: MutableMap<String, Device> = mutableMapOf<String, Device>()
 
@@ -21,14 +25,16 @@ object MqttProvider {
 
     private val locationPath = "eventstream/#"
     private val devicePath = "eventstream/global/server"
-    private val statusPath = "eventstream/global/status"
+    private val statusPath = "status/global/status"
 
     private val QOS_EXACTLY_ONCE: Int = 2 // There are 3 QoS levels in MQTT: At most once (0) At least once (1) Exactly once (2).
 
     private val gson = Gson()
 
-    fun init(uri: String, statusIntervalSec: Long = 10L) {
+    fun init(uri: String, eventStream: EventStream, statusIntervalSec: Long = 10L) {
         println("mqtt: creating MqttClientProvider")
+
+        this.eventStream = eventStream
 
         this.uri = uri
         this.statusIntervalSec = statusIntervalSec
@@ -150,8 +156,20 @@ object MqttProvider {
                     println("mqtt: received message on topic: ${topic}\nmessage : ${data}")
 
                     // decide what to do with the message
-                    if(topic == statusPath){
+                    if(topic.startsWith("status/") || topic.endsWith("/status")){
                         addStatus(data)
+                        return
+                    }
+                    // add to the event stream
+                    if(topic.startsWith("eventstream/") && !(topic == devicePath)) {
+                        try {
+                            val event: EventMessage = gson.fromJson(data, EventMessage::class.java)
+                            eventStream.postEvent(event)
+                        }catch (e: Exception) {
+                            println("mqtt: could not put message in the event stream")
+                            println(e)
+                        }
+                        return
                     }
 
                 } catch (e: Exception) {

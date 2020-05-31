@@ -10,6 +10,9 @@ interface StreamDatabase {
     suspend fun insert(event: EventMessage): Long
 
     @Throws(Exception::class)
+    suspend fun getCurrentCursor(): Long
+
+    @Throws(Exception::class)
     suspend fun getAfter(cursor: Long, batchSize: Int): List<EventMessage>
 
     @Throws(Exception::class)

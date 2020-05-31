@@ -5,8 +5,8 @@ import io.spuyt.streamkt.db.StreamDatabase
 import io.spuyt.streamkt.event.EventMessage
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
-import java.lang.Exception
-
+import org.jetbrains.exposed.sql.vendors.PostgreSQLDialect
+import org.jetbrains.exposed.sql.vendors.currentDialect
 
 /*
 
@@ -87,13 +87,17 @@ object MySql : StreamDatabase {
     fun connectDebug() {
         Database.connect("jdbc:mysql://127.0.0.1:33060/streamkt", "com.mysql.cj.jdbc.Driver", "root", "streamkt-dev-pw")
         transaction {
-            //addLogger(StdOutSqlLogger)
+            addLogger(StdOutSqlLogger)
             createTables()
         }
     }
 
-    fun connect(url: String, port: String, username: String, password: String) {
-
+    fun connectPostgreSQL(url: String, username: String, password: String) {
+        Database.connect("jdbc:postgresql://"+url, "org.postgresql.Driver", username, password)
+        transaction {
+            addLogger(StdOutSqlLogger)
+            createTables()
+        }
     }
 
     fun createTables() {
@@ -126,7 +130,7 @@ object MySql : StreamDatabase {
         val events = mutableListOf<EventMessage>()
         transaction {
             //addLogger(StdOutSqlLogger)
-            Events.select { Events.id.greater(cursor) }.forEach {
+            Events.select { Events.id.greater(cursor) }.orderBy(Events.id, SortOrder.ASC).forEach {
                 val event = EventMessage(
                         it[Events.id],
                         it[Events.eventId],
@@ -153,7 +157,7 @@ object MySql : StreamDatabase {
                 Events.id.greater(cursor) and
                         Events.eventType.inList(eventTypes) and
                         Events.eventVersion.inList(eventVersions)
-            }.forEach {
+            }.orderBy(Events.id, SortOrder.ASC).forEach {
                 val event = EventMessage(
                         it[Events.id],
                         it[Events.eventId],
@@ -172,17 +176,30 @@ object MySql : StreamDatabase {
         return events.toList()
     }
 
+    override suspend fun getCurrentCursor(): Long {
+        var cursor: Long = 0L
+        transaction {
+            val row = Events.selectAll().orderBy(Events.id, SortOrder.DESC).singleOrNull()
+            row?.let {
+                cursor = row[Events.id]
+            }
+        }
+        return cursor
+    }
+
     override suspend fun getConsumerState(consumerId: String): ConsumerState {
-        var cs: ConsumerState? = null
+        var cs: ConsumerState = ConsumerState(consumerId, 0L)
         transaction {
             //addLogger(StdOutSqlLogger)
-            val css = ConsumerStates.select { ConsumerStates.consumerId.eq(consumerId) }.singleOrNull()!!
-            cs = ConsumerState(
-                    css[ConsumerStates.consumerId],
-                    css[ConsumerStates.cursor]
-            )
+            val row = ConsumerStates.select { ConsumerStates.consumerId.eq(consumerId) }.singleOrNull()
+            row?.let {
+                cs = ConsumerState(
+                        row[ConsumerStates.consumerId],
+                        row[ConsumerStates.cursor]
+                )
+            }
         }
-        return cs!!
+        return cs
     }
 
     override suspend fun saveConsumerState(consumerState: ConsumerState): Long {
