@@ -22,10 +22,17 @@ object MqttProvider {
     var isConnected: Boolean = false
     var isConnecting: Boolean = false
 
+    // mqtt domains
+    private val statusPrefix = "status/" // for ping events
+    private val eventstreamPrefix = "eventstream/" // for event messages
 
-    private val locationPath = "eventstream/#"
-    private val devicePath = "eventstream/global/server"
-    private val statusPath = "status/global/status"
+    // subscribe to all events and all status pings
+    private val subEventsPath = "${eventstreamPrefix}#"
+    private val subStatusPath = "${statusPrefix}#"
+
+    // publish on events and status pings on these locations
+    private val pubEventsPath = "${eventstreamPrefix}server"
+    private val pubStatusPath = "${statusPrefix}global/status"
 
     private val QOS_EXACTLY_ONCE: Int = 2 // There are 3 QoS levels in MQTT: At most once (0) At least once (1) Exactly once (2).
 
@@ -58,7 +65,7 @@ object MqttProvider {
             device.addPingEvent(ping)
             devices.put(deviceId, device)
         }()
-        publish(statusPath, pingStr)
+        publish(pubStatusPath, pingStr)
 
         // start loop to send status updates
         this.statusIntervalSec = statusIntervalSec
@@ -74,8 +81,9 @@ object MqttProvider {
                     println("mqtt: connected")
                     // start receiving messages
                     // Give your callback on connection established here
-                    subscribe(locationPath)
-                    publish(statusPath, PingEvent.myStatusJson("joining"))
+                    subscribe(subEventsPath)
+                    subscribe(subStatusPath)
+                    publish(pubStatusPath, PingEvent.myStatusJson("joining"))
                     isConnected = true
                     isConnecting = false
                 }
@@ -106,7 +114,7 @@ object MqttProvider {
                         println("mqtt: sending status update, currently connected: ${isConnected}, currently connecting: ${isConnecting}")
                     }
                     if (isConnected) { // publish status if connected
-                        publish(statusPath, PingEvent.myStatusJson("online"))
+                        publish(pubStatusPath, PingEvent.myStatusJson("online"))
                     } else if(!isConnecting){ // try to reconnect if not already trying to connect
                         connect()
                     }
@@ -156,12 +164,12 @@ object MqttProvider {
                     println("mqtt: received message on topic: ${topic}\nmessage : ${data}")
 
                     // decide what to do with the message
-                    if(topic.startsWith("status/") || topic.endsWith("/status")){
+                    if(topic.startsWith(statusPrefix) || topic.endsWith("/status")){
                         addStatus(data)
                         return
                     }
-                    // add to the event stream
-                    if(topic.startsWith("eventstream/") && !(topic == devicePath)) {
+                    // add to the event stream (if not sent by myself)
+                    if(topic.startsWith(eventstreamPrefix) && !(topic == pubEventsPath)) {
                         try {
                             val event: EventMessage = gson.fromJson(data, EventMessage::class.java)
                             eventStream.postEvent(event)
@@ -205,7 +213,7 @@ object MqttProvider {
     }
 
     fun publishToLocation(json: String, retain: Boolean = false) {
-        publish(devicePath, json, retain)
+        publish(pubEventsPath, json, retain)
     }
 
     fun publish(topic: String, data: String, retain: Boolean = false) {
